@@ -1,0 +1,46 @@
+[package]
+name = "secure-disk-erasure"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "Cross-platform secure disk erasure tool with certificate generation"
+license = "MIT"
+repository = "https://github.com/yourusername/secure-disk-erasure"
+
+[dependencies]
+# Core dependencies
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+thiserror = "1.0"
+clap = { version = "4.0", features = ["derive"] }
+log = "0.4"
+env_logger = "0.10"
+
+# Cryptographic dependencies
+ring = "0.17"
+ed25519-dalek = "2.0"
+sha2 = "0.10"
+base64 = "0.21"
+hex = "0.4"
+rand = "0.8"
+
+# PDF generation
+printpdf = "0.6"
+image = "0.24"
+chrono = { version = "0.4", features = ["serde"] }
+
+# Cross-platform disk access
+sysinfo = "0.29"
+
+# Windows-specific
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["winioctl", "fileapi", "handleapi", "processthreadsapi"] }
+
+# Linux-specific
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "0.2"
+
+[dev-dependencies]
+tempfile = "3.0"

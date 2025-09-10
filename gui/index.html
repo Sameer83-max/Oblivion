@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Disk Erasure Tool</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .device-card {
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .device-card:hover {
+            transform: translateY(-2px);
+        }
+        .device-card.selected {
+            border-color: #0d6efd;
+            background-color: #f8f9fa;
+        }
+        .progress-container {
+            display: none;
+        }
+        .certificate-preview {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-success { background-color: #28a745; }
+        .status-warning { background-color: #ffc107; }
+        .status-danger { background-color: #dc3545; }
+        .status-info { background-color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-shield-check me-2"></i>
+                Secure Disk Erasure Tool
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text" id="version-info">v0.1.0</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Main Content -->
+        <div class="row">
+            <!-- Left Sidebar -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-list-ul me-2"></i>Navigation
+                        </h5>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="#" class="list-group-item list-group-item-action active" data-tab="devices">
+                            <i class="bi bi-hdd me-2"></i>Devices
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" data-tab="wipe">
+                            <i class="bi bi-trash me-2"></i>Wipe Operations
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" data-tab="certificates">
+                            <i class="bi bi-file-earmark-text me-2"></i>Certificates
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" data-tab="settings">
+                            <i class="bi bi-gear me-2"></i>Settings
+                        </a>
+                    </div>
+                </div>
+
+                <!-- System Info -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">System Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <small class="text-muted">
+                            <div id="system-info">
+                                <div>OS: <span id="os-info">Loading...</span></div>
+                                <div>Architecture: <span id="arch-info">Loading...</span></div>
+                                <div>Tool Version: <span id="tool-version">v0.1.0</span></div>
+                            </div>
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="col-md-9">
+                <!-- Devices Tab -->
+                <div id="devices-tab" class="tab-content">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2><i class="bi bi-hdd me-2"></i>Storage Devices</h2>
+                        <button class="btn btn-outline-primary" id="refresh-devices">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                        </button>
+                    </div>
+
+                    <div class="row" id="devices-container">
+                        <!-- Devices will be loaded here -->
+                    </div>
+
+                    <div class="alert alert-info" id="no-devices" style="display: none;">
+                        <i class="bi bi-info-circle me-2"></i>
+                        No storage devices found. Make sure you have the necessary permissions.
+                    </div>
+                </div>
+
+                <!-- Wipe Operations Tab -->
+                <div id="wipe-tab" class="tab-content" style="display: none;">
+                    <h2><i class="bi bi-trash me-2"></i>Wipe Operations</h2>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Configure Wipe Operation</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="wipe-form">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="selected-device" class="form-label">Target Device</label>
+                                            <select class="form-select" id="selected-device" required>
+                                                <option value="">Select a device...</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="wipe-mode" class="form-label">Wipe Mode</label>
+                                            <select class="form-select" id="wipe-mode" required>
+                                                <option value="quick">Quick (Single Pass)</option>
+                                                <option value="full" selected>Full (Multiple Passes)</option>
+                                                <option value="advanced">Advanced (Hardware Secure Erase)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="generate-certificate" checked>
+                                            <label class="form-check-label" for="generate-certificate">
+                                                Generate Certificate
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="verify-after-wipe" checked>
+                                            <label class="form-check-label" for="verify-after-wipe">
+                                                Verify After Wipe
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-warning mt-3">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    <strong>Warning:</strong> This operation will permanently destroy all data on the selected device. 
+                                    Make sure you have backed up any important data.
+                                </div>
+
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <button type="button" class="btn btn-outline-secondary" id="cancel-wipe">
+                                        Cancel
+                                    </button>
+                                    <button type="submit" class="btn btn-danger" id="start-wipe">
+                                        <i class="bi bi-trash me-1"></i>Start Wipe Operation
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Progress Section -->
+                    <div class="card mt-3 progress-container" id="progress-container">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Wipe Progress</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>Progress</span>
+                                    <span id="progress-percentage">0%</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar" id="progress-bar" role="progressbar" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="text-center">
+                                        <div class="h4 mb-0" id="elapsed-time">00:00:00</div>
+                                        <small class="text-muted">Elapsed Time</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center">
+                                        <div class="h4 mb-0" id="bytes-written">0 GB</div>
+                                        <small class="text-muted">Bytes Written</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center">
+                                        <div class="h4 mb-0" id="current-speed">0 MB/s</div>
+                                        <small class="text-muted">Current Speed</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center">
+                                        <div class="h4 mb-0" id="estimated-remaining">--:--:--</div>
+                                        <small class="text-muted">Estimated Remaining</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <h6>Operation Log</h6>
+                                <div class="bg-dark text-light p-3 rounded" style="height: 200px; overflow-y: auto;" id="operation-log">
+                                    <!-- Log messages will appear here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Certificates Tab -->
+                <div id="certificates-tab" class="tab-content" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2><i class="bi bi-file-earmark-text me-2"></i>Certificates</h2>
+                        <div>
+                            <button class="btn btn-outline-primary me-2" id="verify-certificate">
+                                <i class="bi bi-shield-check me-1"></i>Verify Certificate
+                            </button>
+                            <button class="btn btn-outline-secondary" id="generate-keys">
+                                <i class="bi bi-key me-1"></i>Generate Keys
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Certificate Verification</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="certificate-file" class="form-label">Certificate File</label>
+                                        <input type="file" class="form-control" id="certificate-file" accept=".json">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="public-key-file" class="form-label">Public Key (Optional)</label>
+                                        <input type="file" class="form-control" id="public-key-file" accept=".pem">
+                                    </div>
+                                    <button class="btn btn-primary" id="verify-btn">
+                                        <i class="bi bi-shield-check me-1"></i>Verify
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Verification Results</h5>
+                                </div>
+                                <div class="card-body" id="verification-results">
+                                    <div class="text-center text-muted">
+                                        <i class="bi bi-file-earmark-text" style="font-size: 3rem;"></i>
+                                        <p class="mt-2">Select a certificate file to verify</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Recent Certificates</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Certificate ID</th>
+                                            <th>Device</th>
+                                            <th>Mode</th>
+                                            <th>Date</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="certificates-table">
+                                        <!-- Certificates will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div id="settings-tab" class="tab-content" style="display: none;">
+                    <h2><i class="bi bi-gear me-2"></i>Settings</h2>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">General Settings</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="default-wipe-mode" class="form-label">Default Wipe Mode</label>
+                                        <select class="form-select" id="default-wipe-mode">
+                                            <option value="quick">Quick</option>
+                                            <option value="full" selected>Full</option>
+                                            <option value="advanced">Advanced</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="output-directory" class="form-label">Certificate Output Directory</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="output-directory" value="./certificates">
+                                            <button class="btn btn-outline-secondary" type="button" id="browse-output">
+                                                <i class="bi bi-folder"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="auto-generate-certificate" checked>
+                                        <label class="form-check-label" for="auto-generate-certificate">
+                                            Automatically generate certificates
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Security Settings</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="private-key-path" class="form-label">Private Key Path</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="private-key-path" value="./private_key.pem">
+                                            <button class="btn btn-outline-secondary" type="button" id="browse-private-key">
+                                                <i class="bi bi-folder"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="public-key-path" class="form-label">Public Key Path</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="public-key-path" value="./public_key.pem">
+                                            <button class="btn btn-outline-secondary" type="button" id="browse-public-key">
+                                                <i class="bi bi-folder"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="verify-after-wipe-setting" checked>
+                                        <label class="form-check-label" for="verify-after-wipe-setting">
+                                            Verify wipe after completion
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">About</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Secure Disk Erasure Tool</h6>
+                                    <p class="text-muted">
+                                        A cross-platform secure disk erasure tool that ensures data sanitization 
+                                        compliant with global standards like NIST SP 800-88.
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Compliance Standards</h6>
+                                    <ul class="list-unstyled text-muted">
+                                        <li>• NIST SP 800-88 Rev. 1</li>
+                                        <li>• DoD 5220.22-M</li>
+                                        <li>• ISO/IEC 27040:2015</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal fade" id="confirmWipeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Wipe Operation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>WARNING:</strong> This operation will permanently destroy all data on the selected device.
+                    </div>
+                    <p>Are you sure you want to proceed with the wipe operation?</p>
+                    <div id="wipe-confirmation-details"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirm-wipe-btn">Yes, Proceed</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="src/main.js"></script>
+</body>
+</html>
